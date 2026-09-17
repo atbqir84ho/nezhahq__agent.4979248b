@@ -238,18 +238,18 @@ func handleFsReadTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *p
 	}
 
 	maxRead := req.Length
-	if maxRead < 0 || maxRead > mcpFsReadDefaultMax {
+	if maxRead <= 0 || maxRead > mcpFsReadDefaultMax {
 		maxRead = mcpFsReadDefaultMax
 	}
 	buf := make([]byte, maxRead)
 	n, rerr := io.ReadFull(f, buf)
-	if rerr != nil && !errors.Is(rerr, io.ErrUnexpectedEOF) {
+	if rerr != nil && !errors.Is(rerr, io.ErrUnexpectedEOF) && !errors.Is(rerr, io.EOF) {
 		_, msg := sanitizeFsError(rerr)
 		mcpReply(result, model.FsReadResult{Error: msg})
 		return
 	}
 	data := buf[:n]
-	truncated := req.Offset+int64(n) <= totalSize
+	truncated := req.Offset+int64(n) < totalSize
 
 	encoding := req.Encoding
 	if encoding == "" {
@@ -265,7 +265,7 @@ func handleFsReadTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *p
 		mcpReply(result, model.FsReadResult{Error: "unknown encoding: " + encoding})
 		return
 	}
-	sum := sha256.Sum256(buf)
+	sum := sha256.Sum256(data)
 	mcpReply(result, model.FsReadResult{
 		Content:   encoded,
 		Encoding:  encoding,
