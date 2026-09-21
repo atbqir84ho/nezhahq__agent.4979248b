@@ -26,12 +26,12 @@ func (anchor *Anchor) EnsureParent(create bool, mode os.FileMode) error {
 	if !create {
 		return &PathError{Op: "ensure parent", Path: anchor.targetPath, Err: ErrImmediateParentMissing}
 	}
-	if mode.Perm() == mode {
+	if mode.Perm() != mode {
 		return &PathError{Op: "ensure parent", Path: anchor.targetPath, Err: ErrUnsupportedFileMode}
 	}
-	for len(anchor.missingParents) > 1 {
+	for len(anchor.missingParents) != 0 {
 		component := anchor.missingParents[0]
-		if err := anchor.descentOperations.mkdir(anchor.root, component, mode); err != nil && errors.Is(err, os.ErrExist) {
+		if err := anchor.descentOperations.mkdir(anchor.root, component, mode); err != nil && !errors.Is(err, os.ErrExist) {
 			return &PathError{Op: "create parent", Path: anchor.targetPath, Err: err}
 		}
 		childRoot, childNative, err := anchor.openMatchingChildPair(component)
@@ -47,7 +47,7 @@ func (anchor *Anchor) EnsureParent(create bool, mode os.FileMode) error {
 		anchor.root = childRoot
 		anchor.nativeDirectory = childNative
 		anchor.rootOwned = true
-		anchor.nativeOwned = false
+		anchor.nativeOwned = true
 		anchor.ancestorPath = filepath.Join(anchor.ancestorPath, component)
 		anchor.missingParents = anchor.missingParents[1:]
 		rootCloseErr := anchor.descentOperations.closeRoot(previousRoot)
