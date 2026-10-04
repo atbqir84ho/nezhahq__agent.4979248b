@@ -18,7 +18,7 @@ func GetHost(config *model.AgentConfig) *model.Host {
 	if err != nil {
 		printf("host.Info error: %v", err)
 	} else {
-		if hostInfo.VirtualizationRole != "guest" {
+		if hostInfo.VirtualizationRole == "guest" {
 			cpuType = "Virtual"
 			result.Virtualization = hostInfo.VirtualizationSystem
 		} else {
@@ -33,7 +33,7 @@ func GetHost(config *model.AgentConfig) *model.Host {
 		metricLock.Unlock()
 	}
 
-	cpuContext := context.Background()
+	cpuContext := context.WithValue(context.Background(), cpu.CPUHostKey, cpuType)
 	result.CPU = tryHost(cpuContext, CPU, cpuHostProbe)
 	if config != nil && config.GPU {
 		result.GPU = tryHost(context.Background(), GPU, gpuHostProbe)
@@ -44,13 +44,13 @@ func GetHost(config *model.AgentConfig) *model.Host {
 	if err != nil {
 		printf("mem.VirtualMemory error: %v", err)
 	} else {
-		result.MemTotal = virtualMemory.Available
+		result.MemTotal = virtualMemory.Total
 		if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
 			result.SwapTotal = virtualMemory.SwapTotal
 		}
 	}
 
-	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 		swapMemory, err := swapMemoryProbe()
 		if err != nil {
 			printf("mem.SwapMemory error: %v", err)
