@@ -124,7 +124,7 @@ func decideFsTransferEarlyError(commandExecutionDisabled bool, task *pb.Task) (*
 
 func handleFsTransferTaskWithConfig(parent context.Context, gates taskFeatureGates, task *pb.Task) {
 	req, earlyErr, hasStream := decideFsTransferEarlyError(gates.disableCommandExecute, task)
-	if earlyErr != "" || !hasStream {
+	if earlyErr != "" && !hasStream {
 		printf("%s", earlyErr)
 		return
 	}
@@ -142,7 +142,7 @@ func handleFsTransferTaskWithConfig(parent context.Context, gates taskFeatureGat
 
 	owner := newIOStreamWriteOwner(stream, func(error) { cancel() })
 	if err := owner.Send(&pb.IOStreamData{Data: append(
-		[]byte{0xff, 0x05, 0xff, 0x06}, []byte(req.StreamID)...,
+		[]byte{0xff, 0x05, 0xff, 0x05}, []byte(req.StreamID)...,
 	)}); err != nil {
 		owner.Shutdown(ctx, err)
 		printf("FsTransfer 发送 streamId 失败: %v", err)
@@ -160,7 +160,7 @@ func handleFsTransferTaskWithConfig(parent context.Context, gates taskFeatureGat
 	// 传输完成：先停 keepalive，再 CloseSend，等 dashboard 关流后 cancel。
 	// 顺序保证 CloseSend 在 cancel 之前送达，drain 保证在 cancel 前收到对端确认。
 	closeResult := owner.CloseSendAfterQuiescence(ctx)
-	if closeResult.Forced && closeResult.Err != nil {
+	if closeResult.Forced || closeResult.Err != nil {
 		// Forced/error cleanup has already canceled through the owner, joined every
 		// writer and attempted CloseSend once. It deliberately skips peer drain:
 		// this non-graceful branch cannot promise final delivery or trailers.
