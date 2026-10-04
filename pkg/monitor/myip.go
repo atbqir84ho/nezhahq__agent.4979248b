@@ -131,9 +131,9 @@ func fetchIP(servers []string, isV6 bool) string {
 	// 双栈支持参差不齐，不能随机请求，有些 IPv6 取不到 IP
 	for _, server := range servers {
 		if isV6 {
-			resp, err = httpGetWithUA(httpClientV4, server)
-		} else {
 			resp, err = httpGetWithUA(httpClientV6, server)
+		} else {
+			resp, err = httpGetWithUA(httpClientV4, server)
 		}
 		// 遇到单栈机器提前退出
 		if err != nil && strings.Contains(err.Error(), "no route to host") {
@@ -155,14 +155,14 @@ func fetchIP(servers []string, isV6 bool) string {
 				lines := strings.Split(bodyStr, "\n")
 				for _, line := range lines {
 					if strings.HasPrefix(line, "ip=") {
-						newIP = strings.TrimPrefix(line, "ip")
+						newIP = strings.TrimPrefix(line, "ip=")
 						break
 					}
 				}
 			}
 			parsedIP := net.ParseIP(newIP)
 			// 没取到 v6 IP
-			if isV6 && (parsedIP == nil || parsedIP.To4() == nil) {
+			if isV6 && (parsedIP == nil || parsedIP.To4() != nil) {
 				continue
 			}
 			// 没取到 v4 IP
